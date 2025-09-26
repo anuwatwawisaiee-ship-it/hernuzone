@@ -54,16 +54,16 @@
     .buy-btn:hover {
       background: darkred;
     }
-    #loginBox {
+    #loginBox, #registerBox {
       margin-top: 100px;
     }
-    #loginBox input {
+    input {
       padding: 10px;
       margin: 5px;
       border-radius: 5px;
       border: none;
     }
-    #loginBox button {
+    button {
       padding: 10px 20px;
       margin-top: 10px;
       background: red;
@@ -79,12 +79,6 @@
       border-radius:10px;
       margin-top:15px;
     }
-    #topupBox input {
-      margin: 5px;
-      padding: 8px;
-      border-radius: 5px;
-      border: none;
-    }
   </style>
 </head>
 <body>
@@ -96,6 +90,18 @@
     <input type="text" id="username" placeholder="ชื่อผู้ใช้"><br>
     <input type="password" id="password" placeholder="รหัสผ่าน"><br>
     <button onclick="login()">เข้าสู่ระบบ</button>
+    <br>
+    <button onclick="showRegister()">สมัครสมาชิก</button>
+  </div>
+
+  <!-- กล่องสมัครสมาชิก -->
+  <div id="registerBox" style="display:none;">
+    <h2>📝 สมัครสมาชิก</h2>
+    <input type="text" id="regUser" placeholder="ชื่อผู้ใช้"><br>
+    <input type="password" id="regPass" placeholder="รหัสผ่าน"><br>
+    <button onclick="register()">สมัคร</button>
+    <br>
+    <button onclick="backToLogin()">กลับไปเข้าสู่ระบบ</button>
   </div>
 
   <!-- หน้าหลัก -->
@@ -144,11 +150,14 @@
   <footer>© 2025 เฮียนุโซน - ร้านไก่ตัน Blox Fruits</footer>
 
   <script>
-    let users = {
-      "admin": { password: "112233", credits: 999999 },
-      "user1": { password: "1234", credits: 100 },
-      "user2": { password: "5678", credits: 50 }
-    };
+    // โหลด users จาก localStorage
+    let users = JSON.parse(localStorage.getItem("users")) || {};
+
+    // ถ้ายังไม่มี admin ให้สร้างใหม่
+    if (!users["admin"]) {
+      users["admin"] = { password: "112233", credits: 999999 };
+      saveUsers();
+    }
 
     let currentUser = null;
     let topupRequests = [];
@@ -156,10 +165,40 @@
     let timeLeft = 90;
     let topupActive = false;
 
+    function saveUsers() {
+      localStorage.setItem("users", JSON.stringify(users));
+    }
+
+    function showRegister() {
+      document.getElementById("loginBox").style.display = "none";
+      document.getElementById("registerBox").style.display = "block";
+    }
+
+    function backToLogin() {
+      document.getElementById("registerBox").style.display = "none";
+      document.getElementById("loginBox").style.display = "block";
+    }
+
+    function register() {
+      let user = document.getElementById("regUser").value;
+      let pass = document.getElementById("regPass").value;
+      if (!user || !pass) {
+        alert("❌ กรุณากรอกข้อมูลให้ครบ");
+        return;
+      }
+      if (users[user]) {
+        alert("❌ มีชื่อผู้ใช้นี้อยู่แล้ว");
+        return;
+      }
+      users[user] = { password: pass, credits: 0 };
+      saveUsers();
+      alert("✅ สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ");
+      backToLogin();
+    }
+
     function login() {
       const user = document.getElementById("username").value;
       const pass = document.getElementById("password").value;
-
       if (users[user] && users[user].password === pass) {
         currentUser = user;
         document.getElementById("loginBox").style.display = "none";
@@ -185,32 +224,26 @@
     function buy(item, price) {
       if (users[currentUser].credits >= price) {
         users[currentUser].credits -= price;
+        saveUsers();
         document.getElementById("credits").innerText = users[currentUser].credits;
 
         if (item.includes("ของเด็ด")) {
           let rand = Math.random() * 100;
           let result = (rand < 89) ? "🧂 เกลือ!" : "🎁 รางวัลใหญ่!!";
           alert("✅ คุณซื้อ " + item + " ราคา " + price + " เครดิต\nผลลัพธ์: " + result);
-
-          let container = document.querySelector(".container");
-          let btn = document.createElement("button");
-          btn.innerText = "📥 รับสินค้า";
-          btn.className = "buy-btn";
-          btn.onclick = () => {
-            window.location.href = "https://www.facebook.com/anuwat.wawisai.2025?mibextid=ZbWKwL";
-          };
-          container.appendChild(btn);
         } else {
           alert("✅ คุณซื้อ " + item + " ราคา " + price + " เครดิต สำเร็จ!");
-          let container = document.querySelector(".container");
-          let btn = document.createElement("button");
-          btn.innerText = "📥 รับสินค้า";
-          btn.className = "buy-btn";
-          btn.onclick = () => {
-            window.location.href = "https://www.facebook.com/anuwat.wawisai.2025?mibextid=ZbWKwL";
-          };
-          container.appendChild(btn);
         }
+
+        let container = document.querySelector(".container");
+        let btn = document.createElement("button");
+        btn.innerText = "📥 รับสินค้า";
+        btn.className = "buy-btn";
+        btn.onclick = () => {
+          window.location.href = "https://www.facebook.com/anuwat.wawisai.2025?mibextid=ZbWKwL";
+        };
+        container.appendChild(btn);
+
       } else {
         alert("❌ เครดิตไม่พอสำหรับซื้อ " + item);
       }
@@ -240,7 +273,7 @@
     function updateCountdown() {
       let minutes = Math.floor(timeLeft / 60);
       let seconds = timeLeft % 60;
-      document.getElementById("countdown").innerText = 
+      document.getElementById("countdown").innerText =
         "เหลือเวลา: " + minutes + ":" + (seconds < 10 ? "0"+seconds : seconds);
     }
 
@@ -296,6 +329,7 @@
     function approveTopup(index) {
       let req = topupRequests[index];
       users[req.user].credits += req.amount;
+      saveUsers();
       alert("✅ ยืนยันการเติมเครดิตให้ " + req.user + " จำนวน " + req.amount);
       topupRequests.splice(index, 1);
       renderRequests();
